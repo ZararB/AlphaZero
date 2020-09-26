@@ -1,6 +1,5 @@
 """Pseudocode description of the AlphaZero algorithm."""
 
-
 from __future__ import google_type_annotations
 from __future__ import division
 
@@ -186,6 +185,8 @@ def alphazero(config: AlphaZeroConfig):
 # Each self-play job is independent of all others; it takes the latest network
 # snapshot, produces a game and makes it available to the training job by
 # writing it to a shared replay buffer.
+
+
 def run_selfplay(config: AlphaZeroConfig, storage: SharedStorage,
                  replay_buffer: ReplayBuffer):
   while True:

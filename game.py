@@ -43,6 +43,7 @@ class Game(object):
 
     def make_image(self, state_index: int):
         # Game specific feature planes.
+        # Image is 8x8x(MT+L) (8x8x18)
 
         pieces = chess.PIECE_TYPES 
         colors = chess.COLORS

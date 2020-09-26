@@ -7,14 +7,14 @@ import math
 import numpy
 import tensorflow as tf
 
+
 if __name__ == '__main__':
 
 	config = Config()
 	storage = SharedStorage()
 	replay_buffer = ReplayBuffer(config)
-
 	epochs = 1
-
+	
 	for epoch in range(num_epochs):
 
     	run_selfplay(config, storage, replay_buffer)

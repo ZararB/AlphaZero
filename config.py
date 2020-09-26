@@ -1,8 +1,9 @@
 class Config(object):
 
   def __init__(self):
+
     ### Self-Play
-    self.num_actors = 5000
+    self.num_actors = 1
     self.num_games_per_epoch = 5
 
     self.num_sampling_moves = 30
