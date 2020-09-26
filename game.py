@@ -59,7 +59,7 @@ class Game(object):
             image[:,:,idx+1] = np.ones((8,8))*self.board.has_queenside_castling_rights(color)
             image[:,:,idx+2] = np.ones((8,8))*self.board.has_kingside_castling_rights(color)
 
-        num_repetitions = [1 if self.board.is_repetition(x) == True else 0 for x in range(4)]
+        num_repetitions = [x if self.board.is_repetition(x) == True else 0 for x in range(4)]
         image[:,:, idx+3] = np.ones((8,8))*np.argmax(np.array(num_repetitions))
         image[:,:,idx+4] = np.ones((8,8))*self.color
 
