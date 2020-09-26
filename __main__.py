@@ -20,14 +20,8 @@ if __name__ == '__main__':
     	run_selfplay(config, storage, replay_buffer)
   		train_network(config, storage, replay_buffer)
 
-  	
-
-
-
 ##################################
 ####### Part 1: Self-Play ########
-
-
 
 def run_selfplay(config: Config, storage: SharedStorage,
                  replay_buffer: ReplayBuffer):
@@ -36,7 +30,6 @@ def run_selfplay(config: Config, storage: SharedStorage,
     network = storage.latest_network()
     game = play_game(config, network)
     replay_buffer.save_game(game)
-
 
 def play_game(config: Config, network: Network):
 
@@ -70,7 +63,6 @@ def run_mcts(config: Config, game : Game, network : Network):
 		backpropagate(search_path, value, scratch_game.to_play())
 	return select_action(config, game, root), root
 
-
 def select_action(config : Config, game : Game, root : Node):
 	visit_counts = [(child.visit_count, action) 
 					for action, child in root.children.iteritems()]
@@ -81,7 +73,6 @@ def select_action(config : Config, game : Game, root : Node):
     	_, action = max(visit_counts)
 
     return action 
-
 
 def select_child(config : Config, node: Node):
 
@@ -95,7 +86,6 @@ def ucb_score(config : Config, parent: Node, child: Node):
 					config.pb_c_base) + config.pb_c_init
 
 	pb_c *= math.sqrt(parent.visit_count) / (child.visit_count+1)
-
 
 	prior_score = pb_c * child.prior 
 	value_score = child.value()
@@ -121,7 +111,7 @@ def backpropagate(search_path: List[Node], value: float, to_play):
     node.value_sum += value if node.to_play == to_play else (1 - value)
     node.visit_count += 1
 
-def add_exploration_noise(config: AlphaZeroConfig, node: Node):
+def add_exploration_noise(config: Config, node: Node):
   actions = node.children.keys()
   noise = numpy.random.gamma(config.root_dirichlet_alpha, 1, len(actions))
   frac = config.root_exploration_fraction

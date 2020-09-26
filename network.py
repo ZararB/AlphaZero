@@ -11,18 +11,11 @@ class Network(object):
 			)
 
 	def inference(self, image):
-		model_input = preprocess_image(image)
-
-		model_output = self.model.predict(model_input)
-		value = model_output[0, 0]
-		policy = model_output[0, 1]
-
-    	return (value, policy)  # Value, Policy
+		
+		model_output = self.model.predict(image)
+    	return (model_output[0,0], model_output[0,1])  # Value, Policy
 
   	def get_weights(self):
 	    # Returns the weights of this network.
 	    return []
 
-	def preprocess_image(self, image):
-
-		return model_input

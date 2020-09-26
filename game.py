@@ -1,26 +1,29 @@
 import chess
+import numpy as np
 
 class Game(object):
 
-    def __init__(self, history=None):
+    def __init__(self, history=None, color=False):
 
         self.history = history or []
         self.img_stack_size = 4
         self.child_visits = []
         self.num_actions = 4672
         self.board = chess.Board()
+        self.color = color
 
     def terminal(self):
         # Game specific termination rules.
-        pass
+        return self.board.is_game_over()
         
 
     def terminal_value(self, to_play):
+        
         pass
     
     def legal_actions(self):
-        legal_action_generator = self.board.legal_action_generator()
-        actions = [action for action in legal_action_generator]
+        legal_action_generator = self.board.generate_legal_moves()
+        actions = [action.uci() for action in legal_action_generator]
 
         return actions
 
@@ -28,7 +31,7 @@ class Game(object):
         return Game(list(self.history))
 
     def apply(self, action):
-        self.board.push()
+        self.board.push(chess.Move.from_uci(action))
         self.history.append(action)
 
     def store_search_statistics(self, root):
@@ -40,42 +43,24 @@ class Game(object):
 
     def make_image(self, state_index: int):
         # Game specific feature planes.
-        # image is 8x8x(MT + L) where M = number of player piece types + number of opponent piece types
-        # pieces = ['b', 'k', 'n', 'p', 'q', 'r', 'B', 'K', 'N', 'P', 'Q', 'R']
+
         pieces = chess.PIECE_TYPES 
-        color = chess.Colors
-        addInfo = 5 # Castling rights + opp Castling rights + repitition 
+        colors = chess.COLORS
+        addInfo = 6 # Castling rights + opp Castling rights + repitition + color 
         num_planes = 12 + addInfo
         image = np.zeros((8,8, num_planes))
 
+        for color in colors:
+            for piece in pieces:
+                idx = piece - 1 if color else 7 + piece
+                image[:,:,idx] = np.array(self.board.pieces(piece, color).tolist()).reshape(8,8)*1
 
-        for color in chess.Colors:
+            image[:,:,idx+1] = np.ones((8,8))*self.board.has_queenside_castling_rights(color)
+            image[:,:,idx+2] = np.ones((8,8))*self.board.has_kingside_castling_rights(color)
 
-            if color: 
-                for piece in pieces:
-                    idx = piece - 1 
-                    image[8,8,idx] = np.array(board.pieces(piece, color).tolist()).reshape(8,8)*1
-
-                image[8,8,idx+1] = np.ones((8,8))*has_queenside_castling_rights(color)
-                image[8,8,idx+2] = np.ones((8,8))*has_kingside)castling_rights(color)
-
-            else:
-
-                for piece in pieces:
-                    idx = 7 + piece  
-                    image[8,8,idx] = np.array(board.pieces(piece, color).tolist()).reshape(8,8)*1
-
-                image[8,8,idx+1] = np.ones((8,8))*has_queenside_castling_rights(color)
-                image[8,8,idx+2] = np.ones((8,8))*has_kingside)castling_rights(color)
-
-            num_repetitions = [1 if chess.is_repetition(x) == True else 0 for x in range(4)]
-            image[8,8, idx+3] = np.ones((8,8))*np.argmax(np.array(num_repetitions))
-
-
-        # Add castling rights to image 
-        # Add repitition count to image
-        # Add player color 
-
+        num_repetitions = [1 if self.board.is_repetition(x) == True else 0 for x in range(4)]
+        image[:,:, idx+3] = np.ones((8,8))*np.argmax(np.array(num_repetitions))
+        image[:,:,idx+4] = np.ones((8,8))*self.color
 
         return image
 
@@ -85,3 +70,4 @@ class Game(object):
 
     def to_play(self):
         return len(self.history) % 2
+
