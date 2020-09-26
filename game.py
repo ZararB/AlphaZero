@@ -28,6 +28,7 @@ class Game(object):
         return Game(list(self.history))
 
     def apply(self, action):
+        self.board.push()
         self.history.append(action)
 
     def store_search_statistics(self, root):
@@ -42,24 +43,38 @@ class Game(object):
         # image is 8x8x(MT + L) where M = number of player piece types + number of opponent piece types
         # pieces = ['b', 'k', 'n', 'p', 'q', 'r', 'B', 'K', 'N', 'P', 'Q', 'R']
         pieces = chess.PIECE_TYPES 
+        color = chess.Colors
         addInfo = 5 # Castling rights + opp Castling rights + repitition 
-        num_planes = num_player_pieces + num_opponent_pieces + addInfo
-        image = np.zeros((8,8, 12))
+        num_planes = 12 + addInfo
+        image = np.zeros((8,8, num_planes))
 
-        for piece in pieces:
-            for color in colors:
-                if color:
-                    idx = piece-1
+
+        for color in chess.Colors:
+
+            if color: 
+                for piece in pieces:
+                    idx = piece - 1 
                     image[8,8,idx] = np.array(board.pieces(piece, color).tolist()).reshape(8,8)*1
 
+                image[8,8,idx+1] = np.ones((8,8))*has_queenside_castling_rights(color)
+                image[8,8,idx+2] = np.ones((8,8))*has_kingside)castling_rights(color)
 
-                else:
-                    idx = 5 + piece 
+            else:
+
+                for piece in pieces:
+                    idx = 7 + piece  
                     image[8,8,idx] = np.array(board.pieces(piece, color).tolist()).reshape(8,8)*1
+
+                image[8,8,idx+1] = np.ones((8,8))*has_queenside_castling_rights(color)
+                image[8,8,idx+2] = np.ones((8,8))*has_kingside)castling_rights(color)
+
+            num_repetitions = [1 if chess.is_repetition(x) == True else 0 for x in range(4)]
+            image[8,8, idx+3] = np.ones((8,8))*np.argmax(np.array(num_repetitions))
 
 
         # Add castling rights to image 
         # Add repitition count to image
+        # Add player color 
 
 
         return image

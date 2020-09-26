@@ -211,6 +211,7 @@ def play_game(config: AlphaZeroConfig, network: Network):
 # the search tree and traversing the tree according to the UCB formula until we
 # reach a leaf node.
 def run_mcts(config: AlphaZeroConfig, game: Game, network: Network):
+  
   root = Node(0)
   evaluate(root, game, network)
   add_exploration_noise(config, root)

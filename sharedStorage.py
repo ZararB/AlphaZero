@@ -5,11 +5,20 @@ class SharedStorage(object):
   def __init__(self):
     self._networks = {}
 
+    def load_network(self):
+
+    	if self._networks:
+    		return self._networks
+    	else:
+    		return initialize_network() 
+
+
   def latest_network(self) -> Network:
-    if self._networks:
-      return self._networks[max(self._networks.iterkeys())]
-    else:
-      return make_uniform_network()  # policy -> uniform, value -> 0.5
+    if not self._networks:
+    	network = Network()
+    	self._networks.append(network)
+      
+    return self._networks[-1]# policy -> uniform, value -> 0.5
 
   def save_network(self, step: int, network: Network):
-    self._networks[step] = network
+    self._networks[-1] = network
