@@ -1,5 +1,5 @@
 from config import Config
-import numpy 
+import numpy
 class ReplayBuffer(object):
 
   def __init__(self, config: Config):

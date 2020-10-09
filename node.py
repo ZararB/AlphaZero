@@ -4,7 +4,7 @@ class Node(object):
     def __init__(self, prior : float):
         self.visit_count = 0
         self.to_play = -1
-        self.prior = prior #TODO Understand what prior is
+        self.prior = prior
         self.value_sum = 0 
         self.children = {} 
 

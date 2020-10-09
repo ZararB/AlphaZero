@@ -3,7 +3,7 @@ import numpy as np
 
 class Game(object):
 
-    def __init__(self, history=None, color=False):
+    def __init__(self, history=None, color=True):
 
         self.history = history or []
         self.img_stack_size = 4
@@ -18,13 +18,20 @@ class Game(object):
         
 
     def terminal_value(self, to_play):
+        result = self.board.result()
         
-        pass
-    
+        if result == '1-0' and self.color:
+            return 1 
+        elif result == '0-1' and not self.color:
+            return 1 
+        elif result == '1/2-1/2':
+            return 0
+        else:
+            return -1 
+
     def legal_actions(self):
         legal_action_generator = self.board.generate_legal_moves()
         actions = [action.uci() for action in legal_action_generator]
-
         return actions
 
     def clone(self):
@@ -70,5 +77,8 @@ class Game(object):
                 self.child_visits[state_index])
 
     def to_play(self):
-        return len(self.history) % 2
-
+        if self.board.turn == self.color:
+            return True
+        else:
+            return False
+            

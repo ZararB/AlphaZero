@@ -6,8 +6,8 @@ from replayBuffer import ReplayBuffer
 from network import Network
 import math
 import numpy
+import random
 from typing import List
-
 import tensorflow as tf
 
 
@@ -20,7 +20,7 @@ def select_action(config, game, root):
 
 	visit_counts = [(child.visit_count, action) for action, child in root.children.iteritems()]
 	if (len(game.history) < config.num_sampling_moves):
-		_, action = max(visit_counts) #TODO sample action 
+		_, action = random.sample(visit_counts)[0]
 	else:
 		_, action = max(visit_counts)
 
@@ -114,11 +114,14 @@ def run_mcts(config: Config, game : Game, network : Network):
 		value = evaluate(node, scratch_game, network)
 		backpropagate(search_path, value, scratch_game.to_play())
 
-
 	return (select_action(config, game, root), root)
 
 
+config = Config()
+network = Network(config)
+play_game(config, network)
 
+""" 
 
 
 ######### End Self-Play ##########
@@ -134,6 +137,7 @@ def train_network(config: Config, storage: SharedStorage,
 	network = storage.latest_network()
 	optimizer = tf.train.MomentumOptimizer(config.learning_rate_schedule,
 										   config.momentum)
+										   
 	for i in range(config.training_steps):
 		if i % config.checkpoint_interval == 0:
 			storage.save_network(i, network)
@@ -170,3 +174,5 @@ if __name__ == '__main__':
 	for _ in range(num_epochs):
 		run_selfplay(config, storage, replay_buffer)
 		train_network(config, storage, replay_buffer)
+		
+"""
