@@ -16,65 +16,6 @@ import tensorflow as tf
 ####### Part 1: Self-Play ########
 
 
-def select_action(config, game, root):
-
-	visit_counts = [(child.visit_count, action) for action, child in root.children.iteritems()]
-	if (len(game.history) < config.num_sampling_moves):
-		_, action = random.sample(visit_counts)[0]
-	else:
-		_, action = max(visit_counts)
-
-	return action 
-
-def select_child(config : Config, node: Node):
-
-	_, action, child = max((ucb_score(config, node, child), action, child) 
-							for action, child in node.children.iteritems())
-
-	return action, child
-
-def ucb_score(config : Config, parent: Node, child: Node):
-	pb_c = math.log((parent.visit_count + config.pb_c_base + 1 ) / 
-					config.pb_c_base) + config.pb_c_init
-
-	pb_c *= math.sqrt(parent.visit_count) / (child.visit_count+1)
-
-	prior_score = pb_c * child.prior 
-	value_score = child.value()
-	return prior_score + value_score
-
-# We use the neural network to obtain a value and policy prediction.
-def evaluate(node: Node, game: Game, network: Network):
-	value, policy_logits = network.inference(game.make_image(-1))
-  
-	# Expand the node.
-	node.to_play = game.to_play()
-	policy = {a: math.exp(policy_logits[a]) for a in game.legal_actions()}
-	policy_sum = sum(policy.itervalues())
-	for action, p in policy.iteritems():
-		node.children[action] = Node(p / policy_sum)
-	
-	return value
-
-
-# At the end of a simulation, we propagate the evaluation all the way up the
-# tree to the root.
-def backpropagate(search_path: List[Node], value: float, to_play):
-
-	for node in search_path:
-		node.value_sum += value if node.to_play == to_play else (1 - value)
-		node.visit_count += 1
-
-def add_exploration_noise(config: Config, node: Node):
-	actions = node.children.keys()
-	noise = numpy.random.gamma(config.root_dirichlet_alpha, 1, len(actions))
-	frac = config.root_exploration_fraction
-
-	for a, n in zip(actions, noise):
-		node.children[a].prior = node.children[a].prior * (1 - frac) + n * frac
-
-
-
 def run_selfplay(config: Config, storage: SharedStorage,
 				 replay_buffer: ReplayBuffer):
 
@@ -91,14 +32,15 @@ def play_game(config: Config, network: Network):
 
 		action, root = run_mcts(config, game, network)
 		game.apply(action)
-		game.store_search_statistics(root)
+		game.store_search_statistics(root) # Look into 
 
 	return game 
+
 
 def run_mcts(config: Config, game : Game, network : Network):
 
 	root = Node(0)
-	evaluate(root, game, network)
+	evaluate(root, game, network) # look deeper
 	add_exploration_noise(config, root)
 
 	for _ in range(config.num_simulations):
@@ -115,6 +57,73 @@ def run_mcts(config: Config, game : Game, network : Network):
 		backpropagate(search_path, value, scratch_game.to_play())
 
 	return (select_action(config, game, root), root)
+
+
+# We use the neural network to obtain a value and policy prediction.
+def evaluate(node: Node, game: Game, network: Network):
+	value, policy_logits = network.inference(game.make_image(-1))
+  
+	# Expand the node.
+	node.to_play = game.to_play()
+	policy = {a: math.exp(policy_logits[0][a]) for a in game.legal_actions()}
+	policy_sum = sum(policy.values())
+	for action, p in policy.items():
+		node.children[action] = Node(p / policy_sum)
+	
+	return value
+
+
+# At the end of a simulation, we propagate the evaluation all the way up the
+# tree to the root.
+def backpropagate(search_path: List[Node], value: float, to_play):
+
+	for node in search_path:
+		node.value_sum += value if node.to_play == to_play else (1 - value)
+		node.visit_count += 1
+
+
+def select_action(config, game, root):
+
+	visit_counts = [(child.visit_count, action) for action, child in root.children.iteritems()]
+	if (len(game.history) < config.num_sampling_moves):
+		_, action = random.sample(visit_counts)[0]
+	else:
+		_, action = max(visit_counts)
+
+	return action 
+
+def select_child(config : Config, node: Node):
+
+	_, action, child = max((ucb_score(config, node, child), action, child) 
+							for action, child in node.children.items())
+
+	return action, child
+
+def ucb_score(config : Config, parent: Node, child: Node):
+	pb_c = math.log((parent.visit_count + config.pb_c_base + 1 ) / 
+					config.pb_c_base) + config.pb_c_init
+
+	pb_c *= math.sqrt(parent.visit_count) / (child.visit_count+1)
+
+	prior_score = pb_c * child.prior 
+	value_score = child.value()
+	return prior_score + value_score
+
+
+
+def add_exploration_noise(config: Config, node: Node):
+	actions = node.children.keys()
+	noise = numpy.random.gamma(config.root_dirichlet_alpha, 1, len(actions))
+	frac = config.root_exploration_fraction
+
+	for a, n in zip(actions, noise):
+		node.children[a].prior = node.children[a].prior * (1 - frac) + n * frac
+
+
+
+
+
+
 
 
 config = Config()

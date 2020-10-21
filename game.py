@@ -1,10 +1,11 @@
 import chess
 import numpy as np
-
+from config import Config 
 class Game(object):
 
     def __init__(self, history=None, color=True):
-
+        self.config  = Config()
+        self.moveDict = self.config.moveDict
         self.history = history or []
         self.img_stack_size = 4
         self.child_visits = []
@@ -30,15 +31,19 @@ class Game(object):
             return -1 
 
     def legal_actions(self):
+        #TODO return move indices instead of move strings in uci format
         legal_action_generator = self.board.generate_legal_moves()
-        actions = [action.uci() for action in legal_action_generator]
+        actions = [self.moveDict[action.uci()] for action in legal_action_generator]
         return actions
 
     def clone(self):
         return Game(list(self.history))
 
     def apply(self, action):
-        self.board.push(chess.Move.from_uci(action))
+        for item in self.moveDict.items():
+            if item[-1] == action:
+                move = item[0]
+        self.board.push(chess.Move.from_uci(move))
         self.history.append(action)
 
     def store_search_statistics(self, root):
@@ -81,4 +86,7 @@ class Game(object):
             return True
         else:
             return False
+
+
+
             

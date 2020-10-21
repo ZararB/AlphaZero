@@ -33,3 +33,138 @@ class Config(object):
         300e3: 2e-3,
         500e3: 2e-4
     }
+
+    self.moveDict = self.generateMoveDictionary()
+
+
+  def generateMoveDictionary(self):
+      moveDict = {}
+      moveKey = 0 
+
+      colLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    
+      for col in range(1,9):
+        for row in range(1,9):
+          startSquare = colLetters[col-1] + str(row)
+          # Queen moves
+          for direction in ['n','ne', 'e','se', 's', 'sw', 'w', 'nw']:
+            for numSquares in range(1,8):
+              if direction == 'n':
+                endCol = col 
+                endRow = row + numSquares
+
+              elif direction == 'ne':
+                endCol = col + numSquares 
+                endRow = row + numSquares 
+
+              elif direction == 'e':
+                endCol = col + numSquares
+                endRow = row
+
+              elif direction == 'se':
+                endCol = col + numSquares
+                endRow = row - numSquares
+
+              elif direction == 's':
+                endCol = col 
+                endRow = row - numSquares
+
+              elif direction == 'sw':
+                endCol = col - numSquares
+                endRow = row - numSquares 
+
+              elif direction == 'w':
+                endCol = col - numSquares 
+                endRow = row 
+
+              elif direction == 'nw':
+                endCol = col - numSquares
+                endRow = row + numSquares
+
+
+              if (endCol >= 1 and endCol <=8) and (endRow >= 1 and endRow <=8):
+
+                endSquare = colLetters[endCol-1] + str(endRow)
+                uciMove = startSquare + endSquare
+                moveDict[uciMove] = moveKey
+                moveKey += 1 
+
+          # Knight moves 
+          for move in ['ne', 'nw', 'se', 'sw', 'en', 'es', 'wn', 'ws']:
+
+            if move == 'ne':
+              endCol = col + 1
+              endRow = row + 2
+
+            elif move == 'nw':
+              endCol = col - 1 
+              endRow = row + 2 
+
+            elif move == 'se':
+              endCol = col + 1 
+              endRow = row - 2 
+
+            elif move == 'sw':
+              endCol = col - 1 
+              endRow = row - 2 
+              
+            elif move == 'en':
+              endCol = col + 2 
+              endRow = row + 1
+
+            elif move == 'es':
+              endCol = col + 2  
+              endRow = row - 1 
+
+            elif move == 'wn':
+              endCol = col - 2
+              endRow = row + 1 
+
+            elif move == 'ws':
+              endCol = col - 2 
+              endRow = row - 1
+
+            if (endCol >= 1 and endCol <=8) and (endRow >= 1 and endRow <=8):
+
+                endSquare = colLetters[endCol-1] + str(endRow)
+                uciMove = startSquare + endSquare
+                moveDict[uciMove] = moveKey
+                moveKey += 1     
+
+          # Pawn underpromotions 
+          for direction in ['n','ne','se', 's', 'sw', 'nw']:
+            for promotionPiece in ['k', 'r', 'b']:
+              if direction == 'n':
+                endCol = col
+                endRow = row + 1 
+
+              elif direction == 'ne':
+                endCol = col + 1 
+                endRow = row + 1 
+
+              elif direction == 'ne':
+                endCol = col + 1 
+                endRow = row + 1
+
+              elif direction == 's':
+                endCol = col  
+                endRow = row - 1 
+
+              elif direction == 'se':
+                endCol = col + 1 
+                endRow = row - 1 
+
+              elif direction == 'sw':
+                endCol = col - 1 
+                endRow = row - 1 
+
+              if (endCol >= 1 and endCol <=8) and (endRow >= 1 and endRow <=8):
+
+                endSquare = colLetters[endCol-1] + str(endRow) 
+                uciMove = startSquare + endSquare + promotionPiece 
+                moveDict[uciMove] = moveKey
+                moveKey += 1 
+
+              
+      return moveDict 
+      
