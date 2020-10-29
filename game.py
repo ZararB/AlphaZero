@@ -9,7 +9,7 @@ class Game(object):
         self.history = history or []
         self.img_stack_size = 4
         self.child_visits = []
-        self.num_actions = 4672
+        self.num_actions = self.config.num_actions
         self.board = chess.Board()
         self.color = color
 
@@ -31,23 +31,29 @@ class Game(object):
             return -1 
 
     def legal_actions(self):
-        #TODO return move indices instead of move strings in uci format
         legal_action_generator = self.board.generate_legal_moves()
         actions = [self.moveDict[action.uci()] for action in legal_action_generator]
         return actions
 
     def clone(self):
-        return Game(list(self.history))
+        cloned_game = Game(list(self.history))
+        cloned_game.board = self.board
+        return cloned_game
 
     def apply(self, action):
-        for item in self.moveDict.items():
-            if item[-1] == action:
-                move = item[0]
+        move = self.get_move_from_idx(action)
         self.board.push(chess.Move.from_uci(move))
         self.history.append(action)
 
+    def get_move_from_idx(self, idx):
+        for item in self.moveDict.items():
+            if item[-1] == idx:
+                return item[0]
+
+ 
+
     def store_search_statistics(self, root):
-        sum_visits = sum(child.visit_count for child in root.children.itervalues())
+        sum_visits = sum(child.visit_count for _, child in root.children.items())
         self.child_visits.append([
             root.children[a].visit_count / sum_visits if a in root.children else 0
             for a in range(self.num_actions)

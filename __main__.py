@@ -24,6 +24,7 @@ def run_selfplay(config: Config, storage: SharedStorage,
 		game = play_game(config, network)
 		replay_buffer.save_game(game)
 
+
 def play_game(config: Config, network: Network):
 
 	game = Game()
@@ -32,7 +33,7 @@ def play_game(config: Config, network: Network):
 
 		action, root = run_mcts(config, game, network)
 		game.apply(action)
-		game.store_search_statistics(root) # Look into 
+		game.store_search_statistics(root) #TODO figure out what this is doing 
 
 	return game 
 
@@ -40,7 +41,7 @@ def play_game(config: Config, network: Network):
 def run_mcts(config: Config, game : Game, network : Network):
 
 	root = Node(0)
-	evaluate(root, game, network) # look deeper
+	evaluate(root, game, network)
 	add_exploration_noise(config, root)
 
 	for _ in range(config.num_simulations):
@@ -59,13 +60,13 @@ def run_mcts(config: Config, game : Game, network : Network):
 	return (select_action(config, game, root), root)
 
 
-# We use the neural network to obtain a value and policy prediction.
 def evaluate(node: Node, game: Game, network: Network):
 	value, policy_logits = network.inference(game.make_image(-1))
   
 	# Expand the node.
 	node.to_play = game.to_play()
-	policy = {a: math.exp(policy_logits[0][a]) for a in game.legal_actions()}
+	legal_actions = game.legal_actions()
+	policy = {a: math.exp(policy_logits[0][a]) for a in legal_actions}
 	policy_sum = sum(policy.values())
 	for action, p in policy.items():
 		node.children[action] = Node(p / policy_sum)
@@ -84,9 +85,9 @@ def backpropagate(search_path: List[Node], value: float, to_play):
 
 def select_action(config, game, root):
 
-	visit_counts = [(child.visit_count, action) for action, child in root.children.iteritems()]
+	visit_counts = [(child.visit_count, action) for action, child in root.children.items()]
 	if (len(game.history) < config.num_sampling_moves):
-		_, action = random.sample(visit_counts)[0]
+		_, action = random.sample(visit_counts, 1)[0]
 	else:
 		_, action = max(visit_counts)
 
@@ -125,10 +126,11 @@ def add_exploration_noise(config: Config, node: Node):
 
 
 
+######## Debugging ############
 
 config = Config()
 network = Network(config)
-play_game(config, network)
+game = play_game(config, network)
 
 """ 
 

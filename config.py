@@ -8,7 +8,7 @@ class Config(object):
 
     self.num_sampling_moves = 30
     self.max_moves = 512  # for chess and shogi, 722 for Go.
-    self.num_simulations = 800
+    self.num_simulations = 1
 
     # Root prior exploration noise.
     self.root_dirichlet_alpha = 0.3  # for chess, 0.03 for Go and 0.15 for shogi.
@@ -34,12 +34,13 @@ class Config(object):
         500e3: 2e-4
     }
 
-    self.moveDict = self.generateMoveDictionary()
+    self.num_actions, self.moveDict = self.generateMoveDictionary()
+     
 
 
   def generateMoveDictionary(self):
       moveDict = {}
-      moveKey = 0 
+      moveIndex = 0 
 
       colLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     
@@ -86,8 +87,8 @@ class Config(object):
 
                 endSquare = colLetters[endCol-1] + str(endRow)
                 uciMove = startSquare + endSquare
-                moveDict[uciMove] = moveKey
-                moveKey += 1 
+                moveDict[uciMove] = moveIndex
+                moveIndex += 1 
 
           # Knight moves 
           for move in ['ne', 'nw', 'se', 'sw', 'en', 'es', 'wn', 'ws']:
@@ -128,33 +129,35 @@ class Config(object):
 
                 endSquare = colLetters[endCol-1] + str(endRow)
                 uciMove = startSquare + endSquare
-                moveDict[uciMove] = moveKey
-                moveKey += 1     
+                moveDict[uciMove] = moveIndex
+                moveIndex += 1     
+          #TODO filter pawn promotions to only 7th and 2nd ranks
 
-          # Pawn underpromotions 
+          # Pawn promotions 
           for direction in ['n','ne','se', 's', 'sw', 'nw']:
-            for promotionPiece in ['k', 'r', 'b']:
-              if direction == 'n':
+            for promotionPiece in ['n', 'r', 'b', 'q']:
+              
+              if direction == 'n' and row == 7:
                 endCol = col
                 endRow = row + 1 
 
-              elif direction == 'ne':
+              elif direction == 'ne' and row == 7 and col <= 7 :
                 endCol = col + 1 
                 endRow = row + 1 
 
-              elif direction == 'ne':
-                endCol = col + 1 
+              elif direction == 'nw' and row == 7 and col >= 2:
+                endCol = col - 1 
                 endRow = row + 1
 
-              elif direction == 's':
+              elif direction == 's' and row == 2:
                 endCol = col  
                 endRow = row - 1 
 
-              elif direction == 'se':
+              elif direction == 'se' and row == 2 and col <= 7:
                 endCol = col + 1 
                 endRow = row - 1 
 
-              elif direction == 'sw':
+              elif direction == 'sw' and row == 2 and col >= 2:
                 endCol = col - 1 
                 endRow = row - 1 
 
@@ -162,9 +165,9 @@ class Config(object):
 
                 endSquare = colLetters[endCol-1] + str(endRow) 
                 uciMove = startSquare + endSquare + promotionPiece 
-                moveDict[uciMove] = moveKey
-                moveKey += 1 
+                moveDict[uciMove] = moveIndex
+                moveIndex += 1 
 
               
-      return moveDict 
+      return moveIndex, moveDict 
       

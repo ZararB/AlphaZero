@@ -10,7 +10,7 @@ class SharedStorage(object):
     	if self._networks:
     		return self._networks
     	else:
-    		return initialize_network() 
+    		return initialize_network() # policy -> uniform, value -> 0.5
 
 
   def latest_network(self) -> Network:
@@ -18,7 +18,7 @@ class SharedStorage(object):
     	network = Network()
     	self._networks.append(network)
       
-    return self._networks[-1] # policy -> uniform, value -> 0.5
+    return self._networks[-1] 
 
   def save_network(self, step: int, network: Network):
     self._networks[-1] = network

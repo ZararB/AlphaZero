@@ -13,19 +13,19 @@ class Network(object):
 	def __init__(self, config=None):
 		if config is None:
 			config = Config()
-		self.num_actions = len(config.moveDict) # change to len of moveDict
+		self.num_actions = config.num_actions # change to len of moveDict
 		self.batch_size = 1
 		
 		# Naive network
 
 		inputs = keras.Input(shape=(8, 8, 18))
-		shape = inputs.shape
 		x = Conv2D(16, 3, activation='relu')(inputs)
 		x = Conv2D(32, 3, activation='relu')(x)
 		x = MaxPooling2D(2)(x)
-		x = Flatten()(x)
-		value = Dense(1, activation='sigmoid', name='value')(x)
-		policy = Dense(self.num_actions, activation='softmax', name='policy')(x)
+		base = Flatten()(x)
+		value = Dense(1, activation='sigmoid', name='value')(base)
+		policy = Dense(self.num_actions, activation='softmax', name='policy')(base)
+	
 
 		self.model = keras.Model(inputs=[inputs], outputs=[value, policy])
 
@@ -46,25 +46,8 @@ class Network(object):
 		policy = model_output[1]
 		return (value, policy)  # Value, Policy
 
-	def policy2dictionary(self, policy):
-		policyDict = {}
-
-
-		return policyDict 
 
 	
-
-					
-
-
-
-					 
-					
-
-
-
-
-
 
 
 	def get_weights(self):
