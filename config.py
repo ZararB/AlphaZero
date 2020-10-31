@@ -1,173 +1,210 @@
+
+
+
+
 class Config(object):
+		
+	def __init__(self):
 
-  def __init__(self):
+		self.num_actors = 1
+		self.num_games_per_epoch = 5
+		self.num_sampling_moves = 30
+		self.max_moves = 512  # for chess and shogi, 722 for Go.
+		self.num_simulations = 1
+		# Root prior exploration noise.
+		self.root_dirichlet_alpha = 0.3  # for chess, 0.03 for Go and 0.15 for shogi.
+		self.root_exploration_fraction = 0.25
+		# UCB formula
+		self.pb_c_base = 19652
+		self.pb_c_init = 1.25
+				### Training
+		self.training_steps = int(700e3)
+		self.checkpoint_interval = int(1e3)
+		self.window_size = int(1e6)
+		self.batch_size = 4096
+		self.weight_decay = 1e-4
+		self.momentum = 0.9
+		# Schedule for chess and shogi, Go starts at 2e-2 immediately.
+		self.learning_rate_schedule = {
+				0: 2e-1,
+				100e3: 2e-2,
+				300e3: 2e-3,
+				500e3: 2e-4
+		}
+		self.num_actions, self.moveDict = self.generateMoveDictionary()
 
-    ### Self-Play
-    self.num_actors = 1
-    self.num_games_per_epoch = 5
+	def generateMoveDictionary(self):
 
-    self.num_sampling_moves = 30
-    self.max_moves = 512  # for chess and shogi, 722 for Go.
-    self.num_simulations = 1
+		moves = self.generateQueenMoves() + self.generateKnightMoves() + self.generatePawnPromotions()
 
-    # Root prior exploration noise.
-    self.root_dirichlet_alpha = 0.3  # for chess, 0.03 for Go and 0.15 for shogi.
-    self.root_exploration_fraction = 0.25
+		moveDict = {}
+		moveIndex = 0
 
-    # UCB formula
-    self.pb_c_base = 19652
-    self.pb_c_init = 1.25
+		for move in moves:
+			moveDict[move] = moveIndex
+			moveIndex += 1 
 
-    ### Training
-    self.training_steps = int(700e3)
-    self.checkpoint_interval = int(1e3)
-    self.window_size = int(1e6)
-    self.batch_size = 4096
+		return moveIndex, moveDict
+			 
+	def generateQueenMoves(self):
+		moves = []
+	
+		files = ['a','b','c','d','e','f','g','h']
+		ranks = [str(x) for x in range(1,9)]
 
-    self.weight_decay = 1e-4
-    self.momentum = 0.9
-    # Schedule for chess and shogi, Go starts at 2e-2 immediately.
-    self.learning_rate_schedule = {
-        0: 2e-1,
-        100e3: 2e-2,
-        300e3: 2e-3,
-        500e3: 2e-4
-    }
+		rows = list(range(1,9))
+		cols = list(range(1,9))
 
-    self.num_actions, self.moveDict = self.generateMoveDictionary()
-     
+		for col in cols:
+			for row in rows:
+
+				currentSquare = files[col-1] + ranks[row-1]
+
+				for direction in ['n','ne','e','se','s','sw','w','nw']:
+					for numSquares in range(1,8):
+
+						if direction == 'n':
+							newRow = row + numSquares
+							newCol = col 
+						elif direction == 'ne':
+							newRow = row + numSquares
+							newCol = col + numSquares
+						elif direction == 'e':
+							newRow = row 
+							newCol = col + numSquares
+						elif direction == 'se':
+							newRow = row - numSquares
+							newCol = col + numSquares
+						elif direction == 's':
+							newRow = row - numSquares
+							newCol = col
+						elif direction == 'sw':
+							newRow = row - numSquares
+							newCol = col - numSquares
+						elif direction == 'w':
+							newRow = row 
+							newCol = col - numSquares
+						elif direction == 'nw':
+							newRow = row + numSquares
+							newCol = col - numSquares
+
+						if self.isSquareValid(newCol, newRow):
+							newSquare = files[newCol-1] + ranks[newRow-1]
+							move = currentSquare + newSquare
+							moves.append(move)
+
+		return moves 
+
+	def generateKnightMoves(self):
+		moves = []
+
+		files = ['a','b','c','d','e','f','g','h']
+		ranks = [str(x) for x in range(1,9)]
+
+		rows = list(range(1,9))
+		cols = list(range(1,9))
+
+		for col in cols:
+			for row in rows:
+				currentSquare = files[col-1] + ranks[row-1]
+
+				for direction in ['ul', 'ur', 'ru', 'rd', 'dr','dl', 'ld','lu']:
+
+					if direction == 'ul':
+						newCol = col - 1 
+						newRow = row + 2 
+					elif direction == 'ur':
+						newCol = col + 1 
+						newRow = row + 2
+					elif direction == 'ru':
+						newCol = col + 2
+						newRow = row + 1
+					elif direction == 'rd':
+						newCol = col + 2 
+						newRow = row - 1 
+					elif direction == 'dr':
+						newCol = col + 1
+						newRow = row - 2
+					elif direction == 'dl':
+						newCol = col - 1  
+						newRow = row - 2
+					elif direction == 'ld':
+						newCol = col - 2 
+						newRow = row - 1
+					elif direction == 'lu':
+						newCol = col - 2  
+						newRow = row + 1
+
+					if self.isSquareValid(newCol, newRow):
+						newSquare = files[newCol-1] + ranks[newRow-1]
+						move = currentSquare + newSquare
+						moves.append(move)
+
+		return moves
+
+	def generatePawnPromotions(self):
+		moves = []
+
+		files = ['a','b','c','d','e','f','g','h']
+		ranks = [str(x) for x in range(1,9)]
+
+		rows = [2, 7]
+		cols = list(range(1,9))
+
+		for col in cols:
+			for row in rows:
+
+				currentSquare = files[col-1] + ranks[row-1]
+
+				if row == 7: 
+
+					for direction in ['nw', 'n', 'ne']:
+						for piece in ['n', 'b', 'r', 'q']:
+
+							if direction == 'nw':
+								newRow = row + 1 
+								newCol = col - 1 
+							elif direction == 'n':
+								newRow = row + 1 
+								newCol = col 
+							elif direction == 'ne':
+								newRow = row + 1 
+								newCol = col + 1 
+
+							if self.isSquareValid(newCol, newRow):
+								newSquare = files[newCol-1] + ranks[newRow-1]				
+								move = currentSquare + newSquare + piece					
+								moves.append(move)
 
 
-  def generateMoveDictionary(self):
-      moveDict = {}
-      moveIndex = 0 
+				elif row == 2 :
 
-      colLetters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    
-      for col in range(1,9):
-        for row in range(1,9):
-          startSquare = colLetters[col-1] + str(row)
-          # Queen moves
-          for direction in ['n','ne', 'e','se', 's', 'sw', 'w', 'nw']:
-            for numSquares in range(1,8):
-              if direction == 'n':
-                endCol = col 
-                endRow = row + numSquares
+					for direction in ['se', 's', 'sw']:
+						for piece in ['n', 'b', 'r', 'q']:
 
-              elif direction == 'ne':
-                endCol = col + numSquares 
-                endRow = row + numSquares 
+							if direction == 'se':
+								newRow = row - 1 
+								newCol = col + 1 
 
-              elif direction == 'e':
-                endCol = col + numSquares
-                endRow = row
+							elif direction == 's':
+								newRow = row - 1 
+								newCol = col 
 
-              elif direction == 'se':
-                endCol = col + numSquares
-                endRow = row - numSquares
+							elif direction == 'sw':
+								newRow = row - 1
+								newCol = col - 1 
 
-              elif direction == 's':
-                endCol = col 
-                endRow = row - numSquares
+							if self.isSquareValid(newCol, newRow):
+								newSquare = files[newCol-1] + ranks[newRow-1]
+								move = currentSquare + newSquare + piece
+								moves.append(move)
 
-              elif direction == 'sw':
-                endCol = col - numSquares
-                endRow = row - numSquares 
+		return moves
+	
+	def isSquareValid(self, col, row):
 
-              elif direction == 'w':
-                endCol = col - numSquares 
-                endRow = row 
-
-              elif direction == 'nw':
-                endCol = col - numSquares
-                endRow = row + numSquares
-
-
-              if (endCol >= 1 and endCol <=8) and (endRow >= 1 and endRow <=8):
-
-                endSquare = colLetters[endCol-1] + str(endRow)
-                uciMove = startSquare + endSquare
-                moveDict[uciMove] = moveIndex
-                moveIndex += 1 
-
-          # Knight moves 
-          for move in ['ne', 'nw', 'se', 'sw', 'en', 'es', 'wn', 'ws']:
-
-            if move == 'ne':
-              endCol = col + 1
-              endRow = row + 2
-
-            elif move == 'nw':
-              endCol = col - 1 
-              endRow = row + 2 
-
-            elif move == 'se':
-              endCol = col + 1 
-              endRow = row - 2 
-
-            elif move == 'sw':
-              endCol = col - 1 
-              endRow = row - 2 
-              
-            elif move == 'en':
-              endCol = col + 2 
-              endRow = row + 1
-
-            elif move == 'es':
-              endCol = col + 2  
-              endRow = row - 1 
-
-            elif move == 'wn':
-              endCol = col - 2
-              endRow = row + 1 
-
-            elif move == 'ws':
-              endCol = col - 2 
-              endRow = row - 1
-
-            if (endCol >= 1 and endCol <=8) and (endRow >= 1 and endRow <=8):
-
-                endSquare = colLetters[endCol-1] + str(endRow)
-                uciMove = startSquare + endSquare
-                moveDict[uciMove] = moveIndex
-                moveIndex += 1     
-          #TODO filter pawn promotions to only 7th and 2nd ranks
-
-          # Pawn promotions 
-          for direction in ['n','ne','se', 's', 'sw', 'nw']:
-            for promotionPiece in ['n', 'r', 'b', 'q']:
-              
-              if direction == 'n' and row == 7:
-                endCol = col
-                endRow = row + 1 
-
-              elif direction == 'ne' and row == 7 and col <= 7 :
-                endCol = col + 1 
-                endRow = row + 1 
-
-              elif direction == 'nw' and row == 7 and col >= 2:
-                endCol = col - 1 
-                endRow = row + 1
-
-              elif direction == 's' and row == 2:
-                endCol = col  
-                endRow = row - 1 
-
-              elif direction == 'se' and row == 2 and col <= 7:
-                endCol = col + 1 
-                endRow = row - 1 
-
-              elif direction == 'sw' and row == 2 and col >= 2:
-                endCol = col - 1 
-                endRow = row - 1 
-
-              if (endCol >= 1 and endCol <=8) and (endRow >= 1 and endRow <=8):
-
-                endSquare = colLetters[endCol-1] + str(endRow) 
-                uciMove = startSquare + endSquare + promotionPiece 
-                moveDict[uciMove] = moveIndex
-                moveIndex += 1 
-
-              
-      return moveIndex, moveDict 
-      
+		if (row >=1 and row <= 8) and (col >= 1 and col <=8):
+			return True
+		else:
+			return False
+	

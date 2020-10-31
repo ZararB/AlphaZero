@@ -1,6 +1,8 @@
 import chess
 import numpy as np
 from config import Config 
+
+
 class Game(object):
 
     def __init__(self, history=None, color=True):
@@ -18,7 +20,8 @@ class Game(object):
         return self.board.is_game_over()
         
 
-    def terminal_value(self, to_play):
+    def terminal_value(self):
+        
         result = self.board.result()
         
         if result == '1-0' and self.color:
@@ -37,7 +40,7 @@ class Game(object):
 
     def clone(self):
         cloned_game = Game(list(self.history))
-        cloned_game.board = self.board
+        cloned_game.board = self.board.copy()
         return cloned_game
 
     def apply(self, action):
@@ -46,9 +49,9 @@ class Game(object):
         self.history.append(action)
 
     def get_move_from_idx(self, idx):
-        for item in self.moveDict.items():
-            if item[-1] == idx:
-                return item[0]
+        for key, value in self.moveDict.items():
+            if value == idx:
+                return key
 
  
 
