@@ -11,6 +11,8 @@ from typing import List
 import tensorflow as tf
 
 
+#TODO 
+
 
 ##################################
 ####### Part 1: Self-Play ########
@@ -61,7 +63,7 @@ def run_mcts(config: Config, game : Game, network : Network):
 
 
 def evaluate(node: Node, game: Game, network: Network):
-	value, policy_logits = network.inference(game.make_image(-1))
+	value, policy_logits = network.inference(game.make_image(len(game.history)-1))
   
 	# Expand the node.
 	node.to_play = game.to_play()
@@ -130,9 +132,24 @@ def add_exploration_noise(config: Config, node: Node):
 
 config = Config()
 network = Network(config)
+replay_buffer = ReplayBuffer(config)
+
 game = play_game(config, network)
 
+replay_buffer.save_game(game)
+
+batch = replay_buffer.sample_batch()
+network.update_weights(batch, config.weight_decay)
+
+if __name__ == '__main__':
+
+
+
+
+
 """ 
+
+
 
 
 ######### End Self-Play ##########

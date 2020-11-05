@@ -6,7 +6,6 @@ from config import Config
 
 
 
-#TODO implement neural network 
 
 class Network(object):
 
@@ -42,12 +41,23 @@ class Network(object):
 
 	def inference(self, image):
 		model_output = self.model.predict(np.array([image]))
-		value  = model_output[0]
-		policy = model_output[1]
+		value  = np.array(model_output[0])
+		policy = np.array(model_output[1])
 		return (value, policy)  # Value, Policy
 
 
-	
+	def update_weights(self, batch, weight_decay):
+
+		for image, (target_value, target_policy) in batch:
+			image = np.array([image])
+			target_value = np.array([target_value])
+			
+			self.model.fit(
+				[image],
+				{'value': target_value, 'policy':target_policy}
+			)
+
+
 
 
 	def get_weights(self):

@@ -1,7 +1,3 @@
-
-
-
-
 class Config(object):
 		
 	def __init__(self):
@@ -21,7 +17,7 @@ class Config(object):
 		self.training_steps = int(700e3)
 		self.checkpoint_interval = int(1e3)
 		self.window_size = int(1e6)
-		self.batch_size = 4096
+		self.batch_size = 16
 		self.weight_decay = 1e-4
 		self.momentum = 0.9
 		# Schedule for chess and shogi, Go starts at 2e-2 immediately.
@@ -31,7 +27,8 @@ class Config(object):
 				300e3: 2e-3,
 				500e3: 2e-4
 		}
-		self.num_actions, self.moveDict = self.generateMoveDictionary()
+		self.moveList = self.generateMoveList()
+		self.num_actions = len(self.moveList)
 
 	def generateMoveDictionary(self):
 
@@ -45,6 +42,13 @@ class Config(object):
 			moveIndex += 1 
 
 		return moveIndex, moveDict
+
+	def generateMoveList(self):
+
+		moves = self.generateQueenMoves() + self.generateKnightMoves() + self.generatePawnPromotions()
+		
+		return moves
+	
 			 
 	def generateQueenMoves(self):
 		moves = []

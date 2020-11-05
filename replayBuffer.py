@@ -21,5 +21,3 @@ class ReplayBuffer(object):
             p=[len(g.history) / move_sum for g in self.buffer])
       game_pos = [(g, numpy.random.randint(len(g.history))) for g in games]
       return [(g.make_image(i), g.make_target(i)) for (g, i) in game_pos]
-
-
