@@ -1,7 +1,7 @@
 class Node(object):
 
-
     def __init__(self, prior : float):
+        
         self.visit_count = 0
         self.to_play = -1
         self.prior = prior

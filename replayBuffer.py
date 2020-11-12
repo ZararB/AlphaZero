@@ -13,6 +13,7 @@ class ReplayBuffer(object):
       self.buffer.append(game)
 
   def sample_batch(self):
+    
       # Sample uniformly across positions.
       move_sum = float(sum(len(g.history) for g in self.buffer))
       games = numpy.random.choice(

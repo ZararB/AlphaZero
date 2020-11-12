@@ -11,9 +11,6 @@ from typing import List
 import tensorflow as tf
 
 
-#TODO 
-
-
 ##################################
 ####### Part 1: Self-Play ########
 
@@ -25,7 +22,6 @@ def run_selfplay(config: Config, storage: SharedStorage,
 		network = storage.latest_network()
 		game = play_game(config, network)
 		replay_buffer.save_game(game)
-
 
 def play_game(config: Config, network: Network):
 
@@ -39,12 +35,11 @@ def play_game(config: Config, network: Network):
 
 	return game 
 
-
 def run_mcts(config: Config, game : Game, network : Network):
 
 	root = Node(0)
 	evaluate(root, game, network)
-	add_exploration_noise(config, root)
+	#add_exploration_noise(config, root)
 
 	for _ in range(config.num_simulations):
 		node = root
@@ -61,20 +56,21 @@ def run_mcts(config: Config, game : Game, network : Network):
 
 	return (select_action(config, game, root), root)
 
-
 def evaluate(node: Node, game: Game, network: Network):
-	value, policy_logits = network.inference(game.make_image(len(game.history)-1))
+	value, policy = network.inference(game.make_image())
   
 	# Expand the node.
 	node.to_play = game.to_play()
 	legal_actions = game.legal_actions()
-	policy = {a: math.exp(policy_logits[0][a]) for a in legal_actions}
+	'''
+	policy = {a: math.exp(policy[0][a]) for a in legal_actions}
 	policy_sum = sum(policy.values())
+	'''
+	policy = {a: policy[0][a] for a in legal_actions}
 	for action, p in policy.items():
-		node.children[action] = Node(p / policy_sum)
+		node.children[action] = Node(p)
 	
 	return value
-
 
 # At the end of a simulation, we propagate the evaluation all the way up the
 # tree to the root.
@@ -84,14 +80,16 @@ def backpropagate(search_path: List[Node], value: float, to_play):
 		node.value_sum += value if node.to_play == to_play else (1 - value)
 		node.visit_count += 1
 
-
 def select_action(config, game, root):
 
 	visit_counts = [(child.visit_count, action) for action, child in root.children.items()]
+	'''
 	if (len(game.history) < config.num_sampling_moves):
-		_, action = random.sample(visit_counts, 1)[0]
+		_, action = random.sample(visit_counts, 1)[0] # 
 	else:
 		_, action = max(visit_counts)
+	'''
+	_, action = max(visit_counts)
 
 	return action 
 
@@ -130,18 +128,27 @@ def add_exploration_noise(config: Config, node: Node):
 
 ######## Debugging ############
 
-config = Config()
-network = Network(config)
-replay_buffer = ReplayBuffer(config)
-
-game = play_game(config, network)
-
-replay_buffer.save_game(game)
-
-batch = replay_buffer.sample_batch()
-network.update_weights(batch, config.weight_decay)
 
 if __name__ == '__main__':
+
+	config = Config()
+	network = Network(config)
+	replay_buffer = ReplayBuffer(config)
+	num_epochs = 10000
+
+	for e in range(num_epochs):
+
+		game = play_game(config, network)
+		replay_buffer.save_game(game)
+
+		if e % 1 == 0:
+			print('Game {}, Result: {}'.format(e, game.terminal_value()))
+
+		batch = replay_buffer.sample_batch()
+		network.update(batch)
+
+	
+
 
 
 

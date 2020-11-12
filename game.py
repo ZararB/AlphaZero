@@ -9,7 +9,7 @@ class Game(object):
         self.config  = Config()
         self.history = history or []
         self.historyUCI = historyUCI or []
-        self.img_stack_size = 4
+        #self.img_stack_size = 4
         self.child_visits = [] #TODO Figure out exactly what this is 
         self.num_actions = self.config.num_actions
         self.board = chess.Board()
@@ -18,12 +18,11 @@ class Game(object):
     def terminal(self):
         return self.board.is_game_over()
         
-
     def terminal_value(self, state_index=None):
         
         result = self.board.result()
 
-        state_index = state_index or len(history)
+        state_index = state_index or len(self.history)
         
         if result == '1-0' and self.color and state_index % 2 == 0:
             return 1 
@@ -35,9 +34,8 @@ class Game(object):
             return -1 
 
     def make_target(self, state_index: int):
-        #TODO Fix bug, terminal value depends on whether it's agent's turn or not 
 
-        return (np.array(self.termial_value(state_index)),
+        return (np.array(self.terminal_value(state_index)),
                 np.array(self.child_visits[state_index]).reshape(1, self.num_actions))
 
     def legal_actions(self):
@@ -90,7 +88,7 @@ class Game(object):
 
     def to_play(self, state_index=None):
 
-        state_index = state_index or len(self.history)  
+        state_index = state_index or len(self.history) 
 
         if self.color:
             if state_index % 2 == 0:

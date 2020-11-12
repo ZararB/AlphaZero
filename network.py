@@ -14,7 +14,7 @@ class Network(object):
 			config = Config()
 		self.num_actions = config.num_actions # change to len of moveDict
 		self.batch_size = 1
-		
+
 		# Naive network
 
 		inputs = keras.Input(shape=(8, 8, 18))
@@ -25,7 +25,6 @@ class Network(object):
 		value = Dense(1, activation='sigmoid', name='value')(base)
 		policy = Dense(self.num_actions, activation='softmax', name='policy')(base)
 	
-
 		self.model = keras.Model(inputs=[inputs], outputs=[value, policy])
 
 		self.model.compile(optimizer='adam',
@@ -46,7 +45,7 @@ class Network(object):
 		return (value, policy)  # Value, Policy
 
 
-	def update_weights(self, batch, weight_decay):
+	def update(self, batch):
 
 		for image, (target_value, target_policy) in batch:
 			image = np.array([image])
@@ -54,7 +53,8 @@ class Network(object):
 			
 			self.model.fit(
 				[image],
-				{'value': target_value, 'policy':target_policy}
+				{'value': target_value, 'policy':target_policy},
+				verbose=0
 			)
 
 
