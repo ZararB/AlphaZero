@@ -23,9 +23,10 @@ class Network(object):
 		else:
 		
 			inputs = keras.Input(shape=(8, 8, 18))
-			x = Conv2D(16, 3, activation='relu')(inputs)
-			x = Conv2D(32, 3, activation='relu')(x)
-			x = MaxPooling2D(2)(x)
+			x = Conv2D(256, 3, activation='relu')(inputs)
+			'''
+			#TODO Implement neural network here 
+			'''
 			base = Flatten()(x)
 			value = Dense(1, activation='sigmoid', name='value')(base)
 			policy = Dense(self.num_actions, activation='softmax', name='policy')(base)
