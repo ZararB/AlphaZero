@@ -1,24 +1,28 @@
 from network import Network
 
+
 class SharedStorage(object):
 
-  def __init__(self):
-    self._networks = {}
+	def __init__(self, config):
+		self._networks = []
+		self.config = config
 
-    def load_network(self):
+	def load_network(self):
 
-    	if self._networks:
-    		return self._networks
-    	else:
-    		return initialize_network() # policy -> uniform, value -> 0.5
+		if self._networks:
+			return self._networks[-1]
+		else:
+			return Network(self.config)
+			
+	def latest_network(self):
+		if not self._networks:
+			network = Network(self.config)
+			self._networks.append(network)
+	  
+		return self._networks[-1] 
 
+	def save_network(self, network):
+		if len(self._networks) > 2:
+			self._networks = self._networks[1:]
 
-  def latest_network(self) -> Network:
-    if not self._networks:
-    	network = Network()
-    	self._networks.append(network)
-      
-    return self._networks[-1] 
-
-  def save_network(self, step: int, network: Network):
-    self._networks[-1] = network
+		self._networks.append(network)

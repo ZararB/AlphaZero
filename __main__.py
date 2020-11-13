@@ -7,8 +7,10 @@ from network import Network
 import math
 import numpy
 import random
-from typing import List
 import tensorflow as tf
+import threading
+import time
+from tensorflow.keras.models import load_model
 
 
 ##################################
@@ -31,7 +33,7 @@ def play_game(config: Config, network: Network):
 
 		action, root = run_mcts(config, game, network)
 		game.apply(action)
-		game.store_search_statistics(root) #TODO figure out what this is doing 
+		game.store_search_statistics(root) #TODO figure out what this is doing
 
 	return game 
 
@@ -74,7 +76,7 @@ def evaluate(node: Node, game: Game, network: Network):
 
 # At the end of a simulation, we propagate the evaluation all the way up the
 # tree to the root.
-def backpropagate(search_path: List[Node], value: float, to_play):
+def backpropagate(search_path, value, to_play):
 
 	for node in search_path:
 		node.value_sum += value if node.to_play == to_play else (1 - value)
@@ -123,6 +125,19 @@ def add_exploration_noise(config: Config, node: Node):
 
 
 
+class SelfPlay(threading.Thread):
+	
+	def run(self):
+
+		for _ in range(config.num_games_per_actor):
+			network1 = Network(config)
+			network1.model = load_model('test.h5')
+			game = play_game(config, network1)
+			replay_buffer.save_game(game)
+		
+		return 0
+
+
 
 
 
@@ -133,20 +148,37 @@ if __name__ == '__main__':
 
 	config = Config()
 	network = Network(config)
+	network.model.save('test.h5')
+	storage = SharedStorage(config)
 	replay_buffer = ReplayBuffer(config)
 	num_epochs = 10000
 
-	for e in range(num_epochs):
+	time0 = time.time()
+	for e in range(1):
 
+		jobs = []
+
+		for _ in range(config.num_actors):
+			job = SelfPlay()
+			job.start()
+			jobs.append(job)
+
+		for job in jobs:
+			job.join()
+
+		time1 = time.time()
+		delta = time1 - time0
+		#batch = replay_buffer.sample_batch()
+		#network.update(batch)
+
+		
+	
+	time0 = time.time()
+	for e in range(2):
 		game = play_game(config, network)
 		replay_buffer.save_game(game)
 
-		if e % 1 == 0:
-			print('Game {}, Result: {}'.format(e, game.terminal_value()))
+	time1 = time.time()
 
-		batch = replay_buffer.sample_batch()
-		network.update(batch)
-
-	
-
-
+	delta1 = time1 - time0
+	print(delta1, delta)

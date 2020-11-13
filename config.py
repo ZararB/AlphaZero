@@ -2,11 +2,11 @@ class Config(object):
 		
 	def __init__(self):
 
-		self.num_actors = 1
-		self.num_games_per_epoch = 5
+		self.num_actors = 2
+		self.num_games_per_actor = 1
 		self.num_sampling_moves = 30
 		self.max_moves = 512  # for chess and shogi, 722 for Go.
-		self.num_simulations = 5
+		self.num_simulations = 10
 		# Root prior exploration noise.
 		self.root_dirichlet_alpha = 0.3  # for chess, 0.03 for Go and 0.15 for shogi.
 		self.root_exploration_fraction = 0.25
