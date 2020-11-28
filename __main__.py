@@ -1,29 +1,20 @@
 from game import Game
 from config import Config
-from sharedStorage import SharedStorage
 from node import Node 
 from replayBuffer import ReplayBuffer
 from network import Network
 import math
-import numpy
+import numpy as np
 import random
 import tensorflow as tf
 import threading
 import time
 from tensorflow.keras.models import load_model
-
+import pickle as pkl
 
 ##################################
 ####### Part 1: Self-Play ########
 
-
-def run_selfplay(config: Config, storage: SharedStorage,
-				 replay_buffer: ReplayBuffer):
-
-	for i in range(config.num_games_per_epoch):
-		network = storage.latest_network()
-		game = play_game(config, network)
-		replay_buffer.save_game(game)
 
 def play_game(config: Config, network: Network):
 
@@ -41,7 +32,7 @@ def run_mcts(config: Config, game : Game, network : Network):
 
 	root = Node(0)
 	evaluate(root, game, network)
-	#add_exploration_noise(config, root)
+	add_exploration_noise(config, root)
 
 	for _ in range(config.num_simulations):
 		node = root
@@ -116,7 +107,7 @@ def ucb_score(config : Config, parent: Node, child: Node):
 
 def add_exploration_noise(config: Config, node: Node):
 	actions = node.children.keys()
-	noise = numpy.random.gamma(config.root_dirichlet_alpha, 1, len(actions))
+	noise = np.random.gamma(config.root_dirichlet_alpha, 1, len(actions))
 	frac = config.root_exploration_fraction
 
 	for a, n in zip(actions, noise):
@@ -124,37 +115,35 @@ def add_exploration_noise(config: Config, node: Node):
 
 
 
+######## Debugging ############
 
 class SelfPlay(threading.Thread):
 	
 	def run(self):
 
-		for _ in range(config.num_games_per_actor):
-			network1 = Network(config)
-			network1.model = load_model('test.h5')
-			game = play_game(config, network1)
+		for i in range(config.num_games_per_actor):
+			
+			game = play_game(config, network)
+			with open('games/{}.pkl'.format(np.random.randint(1000000)), 'wb') as f:
+				pkl.dump(game, f)
 			replay_buffer.save_game(game)
+			print('Thread: {}, Game: {}, Reward {}'.format(threading.get_ident(), i, game.terminal_value()))
+			
 		
-		return 0
 
-
-
-
-
-######## Debugging ############
-
+# With multithreading and thread safe network 
 
 if __name__ == '__main__':
 
 	config = Config()
 	network = Network(config)
-	network.model.save('test.h5')
-	storage = SharedStorage(config)
-	replay_buffer = ReplayBuffer(config)
-	num_epochs = 10000
 
-	time0 = time.time()
-	for e in range(1):
+	replay_buffer = ReplayBuffer(config)
+	num_epochs = 1000000
+
+	for e in range(num_epochs):
+
+		network.graph.finalize()
 
 		jobs = []
 
@@ -163,22 +152,58 @@ if __name__ == '__main__':
 			job.start()
 			jobs.append(job)
 
+		# Wait for all threads to complete 
 		for job in jobs:
 			job.join()
 
-		time1 = time.time()
-		delta = time1 - time0
-		#batch = replay_buffer.sample_batch()
-		#network.update(batch)
+		network.graph._unsafe_unfinalize()
+		
+		batch = replay_buffer.sample_batch()
+		network.update(batch)
+			
+		if e % 10 == 0 :
+			network.model.save('models/{}.h5'.format(e))
+	
+
+
+
+# Without multithreading
+
+""" 
+if __name__ == '__main__':
+
+	config = Config()
+	network = Network(config)
+	replay_buffer = ReplayBuffer(config)
+	num_epochs = 10000000
+
+	
+	game_num = 0 
+
+	for e in range(num_epochs):
+		
+		score_per_epoch = 0
+
+		for _ in range(config.num_games_per_epoch):
+
+			game = play_game(config, network)
+			replay_buffer.save_game(game)
+
+			game_score = game.terminal_value()
+			score_per_epoch = score_per_epoch + game_score
+
+			print('Game: {}, Reward: {}'.format(game_num, game_score))
+
+			game_num = game_num + 1 
+
+
+
+		batch = replay_buffer.sample_batch()
+		network.update(batch)
+
+		print('######\nEpoch: {}, Average Reward: {}'.format(e, score_per_epoch/config.num_games_per_epoch))
 
 		
-	
-	time0 = time.time()
-	for e in range(2):
-		game = play_game(config, network)
-		replay_buffer.save_game(game)
-
-	time1 = time.time()
-
-	delta1 = time1 - time0
-	print(delta1, delta)
+		if e % 10 == 0 :
+			network.model.save('models/{}.h5'.format(e))
+ """

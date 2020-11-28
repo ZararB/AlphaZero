@@ -3,26 +3,17 @@ from network import Network
 
 class SharedStorage(object):
 
-	def __init__(self, config):
-		self._networks = []
-		self.config = config
+	def __init__(self, network):
+		self.weights = [network.model.get_weights()]
 
-	def load_network(self):
 
-		if self._networks:
-			return self._networks[-1]
-		else:
-			return Network(self.config)
+	def load_weights(self):
+		return self.weights[-1]
+
 			
-	def latest_network(self):
-		if not self._networks:
-			network = Network(self.config)
-			self._networks.append(network)
-	  
-		return self._networks[-1] 
+	def save_weights(self, network):
 
-	def save_network(self, network):
-		if len(self._networks) > 2:
-			self._networks = self._networks[1:]
+		if len(self.weights) > 2:
+			self.weights = self.weights[1:]
 
-		self._networks.append(network)
+		self.weights.append(network.model.get_weights())
