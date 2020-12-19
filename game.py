@@ -5,15 +5,14 @@ from config import Config
 
 class Game(object):
 
-    def __init__(self, history=None, historyUCI=None, color=True):
+    def __init__(self, history=None, historyUCI=None):
         self.config  = Config()
         self.history = history or []
         self.historyUCI = historyUCI or []
         #self.img_stack_size = 4
-        self.child_visits = [] #TODO Figure out exactly what this is 
+        self.child_visits = []
         self.num_actions = self.config.num_actions
         self.board = chess.Board()
-        self.color = color
 
     def terminal(self):
         return self.board.is_game_over()
@@ -22,13 +21,17 @@ class Game(object):
         
         result = self.board.result()
 
-        state_index = state_index or len(self.history)
-        
-        if result == '1-0' and self.color and state_index % 2 == 0:
-            return 1 
-        elif result == '0-1' and not self.color and not state_index % 2 == 0:
+        state_index = state_index or len(self.history) 
+
+        to_play = self.to_play(state_index)
+
+        if result == '1-0' and to_play == False:
+            return 1
+        elif result == '0-1' and to_play == True:
             return 1 
         elif result == '1/2-1/2':
+            return 0
+        elif result == '*' and len(self.history) == self.config.max_moves:
             return 0
         else:
             return -1 
@@ -87,19 +90,11 @@ class Game(object):
         return image
 
     def to_play(self, state_index=None):
-
-        state_index = state_index or len(self.history) 
-
-        if self.color:
-            if state_index % 2 == 0:
-                return True
-            else:
-                return False
-
-        else:
-            if state_index % 2 == 0:
-                return False
-            else:
-                return True 
         
+        state_index = state_index or len(self.history)  
 
+        if state_index % 2 == 0:
+            return True
+        else:
+            return False
+    

@@ -29,6 +29,7 @@ class Network(object):
 		
 			
 	def build_model(self):
+		#TODO Write for loop for adding blocks 
 
 		inputs = Input(shape=(8, 8, 18))
 		x = Conv2D(64, 3, activation='relu')(inputs)
@@ -100,10 +101,5 @@ class Network(object):
 				verbose=0
 			)
 
-	
-
-	def get_weights(self):
-		# Returns the weights of this network.
-		return []
 
 

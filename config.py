@@ -3,10 +3,10 @@ class Config(object):
 	def __init__(self):
 
 		self.num_actors = 3
-		self.num_games_per_actor = 1
+		self.num_games_per_actor = 10
 		#self.num_sampling_moves = 30
 		self.max_moves = 512  # for chess and shogi, 722 for Go.
-		self.num_simulations = 1
+		self.num_simulations = 50
 		# Root prior exploration noise.
 		self.root_dirichlet_alpha = 0.3  # for chess, 0.03 for Go and 0.15 for shogi.
 		self.root_exploration_fraction = 0.25
@@ -17,7 +17,7 @@ class Config(object):
 		self.training_steps = int(700e3)
 		self.checkpoint_interval = int(1e3)
 		self.window_size = int(1e6)
-		self.batch_size = 2048
+		self.batch_size = 4
 		self.weight_decay = 1e-4
 		self.momentum = 0.9
 		# Schedule for chess and shogi, Go starts at 2e-2 immediately.
