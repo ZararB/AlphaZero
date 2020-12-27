@@ -6,26 +6,46 @@ from tensorflow import keras
 from tensorflow.keras.models import *
 from tensorflow.keras.layers import *
 from tensorflow.keras import backend as K
-
+import socket
+import pickle as pkl
+import os 
 K.clear_session()
+
+
 class Network(object):
 
-	def __init__(self, config=None, filepath=None):
-		if config is None:
-			config = Config()
-		self.num_actions = config.num_actions # change to len of moveDict
+	def __init__(self, config, remote=False):
+
+		self.config = config 
+		self.num_actions = self.config.num_actions # change to len of moveDict
 		self.batch_size = 1
+		self.remote = remote
 
-		# Naive network
-		if filepath:
-			self.model = load_model(filepath)
+
+		if self.remote:
+
+			self.ipaddress = input("Enter ip address of server: ")
+			self.port = input("Enter port: ")
+
+			self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			
 		else:
-			self.model = self.build_model()
+			
+			model_files = os.listdir('models/')
+			model_files.sort()
 
-		self.model.predict(np.random.randn(1,8,8,18))
-		self.session = K.get_session()
-		self.graph = tf.get_default_graph()
-		self.graph.finalize()
+			if model_files:
+				model_filepath = 'models/' + model_files[-1]
+				print('Loading model {}...'.format(model_filepath))
+				self.model = load_model(model_filepath)
+			
+			else:
+				self.model = self.build_model()
+
+			self.model.predict(np.random.randn(1,8,8,18))
+			self.session = K.get_session()
+			self.graph = tf.get_default_graph()
+			self.graph.finalize()
 		
 			
 	def build_model(self):
@@ -80,26 +100,54 @@ class Network(object):
 
 		return model 
 
+
 	def inference(self, image):
-		with self.session.as_default():
-			with self.graph.as_default():
-				model_output = self.model.predict(np.array([image]))
-		value  = np.array(model_output[0])
-		policy = np.array(model_output[1])
+
+
+		if self.remote:
+
+			with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+
+				sock.connect((socket.gethostname(), 1234))
+				data = pkl.dumps(image)
+				data = bytes(f'{len(data):<{self.config.HEADERSIZE}}' + f'{self.config.INFERENCE_FLAG:<{self.config.FLAGSIZE}}', 'utf-8') + data
+				sock.sendall(data)
+
+				header = sock.recv(self.config.HEADERSIZE)
+				datalen = int(header)
+				response = sock.recv(datalen)
+				value, policy = pkl.loads(response)
+		  
+
+		else:
+			with self.session.as_default():
+				with self.graph.as_default():
+					model_output = self.model.predict(np.array([image]))
+			value  = np.array(model_output[0])
+			policy = np.array(model_output[1])
+
 		return (value, policy)  # Value, Policy
 
 
 	def update(self, batch):
 
-		for image, (target_value, target_policy) in batch:
-			image = np.array([image])
-			target_value = np.array([target_value])
-			
-			self.model.fit(
-				[image],
-				{'value': target_value, 'policy':target_policy},
-				verbose=0
-			)
+		if self.remote:
+
+			data = pkl.dumps(batch)
+			data = bytes(f'{len(data):<{self.config.HEADERSIZE}}' + f'{self.config.UPDATE_FLAG:<{self.config.FLAGSIZE}}', 'utf-8') + data
+			self.s.send(data)
+
+		else:
+
+			for image, (target_value, target_policy) in batch:
+				image = np.array([image])
+				target_value = np.array([target_value])
+				
+				self.model.fit(
+					[image],
+					{'value': target_value, 'policy':target_policy},
+					verbose=0
+				)
 
 
 

@@ -1,11 +1,15 @@
 class Config(object):
 		
 	def __init__(self):
-
+		
+		self.HEADERSIZE = 10
+		self.INFERENCE_FLAG = 2
+		self.UPDATE_FLAG = 1 
+		self.FLAGSIZE = 5
 		self.num_actors = 3
-		self.num_games_per_actor = 10
+		self.num_games_per_actor = 5
 		#self.num_sampling_moves = 30
-		self.max_moves = 512  # for chess and shogi, 722 for Go.
+		self.max_moves = 150  # for chess and shogi, 722 for Go.
 		self.num_simulations = 50
 		# Root prior exploration noise.
 		self.root_dirichlet_alpha = 0.3  # for chess, 0.03 for Go and 0.15 for shogi.

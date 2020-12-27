@@ -38,11 +38,10 @@ class SelfPlay(threading.Thread):
 		for i in range(config.num_games_per_actor):
 			
 			game = play_game(config, network)
-			result = game.board.result()
+			result = game.board.result() 
 			terminal_value = game.terminal_value()
 
-
-			if result == '1/2-1/2':
+			if result == '1/2-1/2' or result == '*':
 				file_name = 'games/draw_' + str(np.random.randint(500000))
 			else:
 				file_name = 'games/' + result + '_' + str(np.random.randint(500000))
@@ -58,25 +57,18 @@ class SelfPlay(threading.Thread):
 
 if __name__ == '__main__':
 
-
+	remote = False
 	config = Config()
 	replay_buffer = ReplayBuffer(config)
-
-	model_files = os.listdir('models/')
-	model_files.sort()
-
-	if model_files:
-		model_filepath = 'models/' + model_files[-1]
-		network = Network(config, model_filepath)
-	else:
-		network = Network(config)
+	network = Network(config, remote=remote)
 
 	num_epochs = 1000000
 
 	for e in range(num_epochs):
 		
 		# Make network read-only so it can be run on multiple threads
-		network.graph.finalize()
+		if not remote:
+			network.graph.finalize()
 
 		jobs = []
 
@@ -90,7 +82,8 @@ if __name__ == '__main__':
 			job.join()
 
 		# Make network writable for parameter update
-		network.graph._unsafe_unfinalize()
+		if not remote:
+			network.graph._unsafe_unfinalize()
 		 
 		batch = replay_buffer.sample_batch()
 		network.update(batch)
