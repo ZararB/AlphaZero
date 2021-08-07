@@ -98,3 +98,37 @@ class Game(object):
         else:
             return False
     
+    def uci_to_unity_input(self, uci_move):
+        ranks = ['a', 'b', 'c' , .... , 'h']
+        # UCI to list of cords "e7e8"
+        sq1 = uci_move[:2]
+        sq2 = uci_move[2:]
+
+        if len(sq2) > 2:
+            promotion = sq2[-1]
+
+        # uci sq1sq2 ex. e2e4
+        # unity input [x0, z0, x1, z1]
+        history = ['e2e4', 'e7e5', .....]
+
+
+
+
+def generate_training_batch(history):
+
+    chess_game = unity.make('filepath-to-unity')
+
+    initial_frame = chess_game.reset()
+
+    for move in history:
+
+        
+        next_state, _, _, _ = chess_game.step(move_in_uci_format)
+
+
+
+
+
+        
+
+        
