@@ -1,6 +1,7 @@
 from node import Node 
 import numpy as np
 import math
+import random
 
 def run_mcts(config, game, network):
 
@@ -29,13 +30,18 @@ def evaluate(node, game, network):
 	# Expand the node.
 	node.to_play = game.to_play()
 	legal_actions = game.legal_actions()
-	'''
-	policy = {a: math.exp(policy[0][a]) for a in legal_actions}
-	policy_sum = sum(policy.values())
-	'''
+	
+	# Normalize policy over legal actions only
 	policy = {a: policy[0][a] for a in legal_actions}
-	for action, p in policy.items():
-		node.children[action] = Node(p)
+	policy_sum = sum(policy.values())
+	if policy_sum > 0:
+		for action, p in policy.items():
+			node.children[action] = Node(p / policy_sum)
+	else:
+		# Uniform distribution if all probabilities are zero
+		uniform_prob = 1.0 / len(legal_actions) if legal_actions else 0
+		for action in legal_actions:
+			node.children[action] = Node(uniform_prob)
 	
 	return value
 
@@ -44,19 +50,26 @@ def evaluate(node, game, network):
 def backpropagate(search_path, value, to_play):
 
 	for node in search_path:
-		node.value_sum += value if node.to_play == to_play else (1 - value)
+		# Value is from perspective of player to move, so flip for opponent
+		node.value_sum += value if node.to_play == to_play else -value
 		node.visit_count += 1
 
 def select_action(config, game, root):
 
 	visit_counts = [(child.visit_count, action) for action, child in root.children.items()]
-	'''
-	if (len(game.history) < config.num_sampling_moves):
-		_, action = random.sample(visit_counts, 1)[0] # 
+	
+	# Temperature sampling for early moves (exploration)
+	if hasattr(config, 'num_sampling_moves') and len(game.history) < config.num_sampling_moves:
+		# Sample proportionally to visit counts (temperature = 1)
+		total_visits = sum(vc for vc, _ in visit_counts)
+		if total_visits > 0:
+			probs = [vc / total_visits for vc, _ in visit_counts]
+			action = np.random.choice([a for _, a in visit_counts], p=probs)
+		else:
+			_, action = random.choice(visit_counts)
 	else:
+		# Greedy selection (exploitation)
 		_, action = max(visit_counts)
-	'''
-	_, action = max(visit_counts)
 
 	return action 
 

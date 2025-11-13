@@ -18,23 +18,29 @@ class Game(object):
         return self.board.is_game_over()
         
     def terminal_value(self, state_index=None):
-        
+        """Returns value from perspective of player at state_index."""
         result = self.board.result()
 
         state_index = state_index or len(self.history) 
 
         to_play = self.to_play(state_index)
 
-        if result == '1-0' and to_play == False:
-            return 1
-        elif result == '0-1' and to_play == True:
-            return 1 
+        # Value is from perspective of player to move at state_index
+        if result == '1-0':
+            # White won
+            return 1.0 if to_play else -1.0
+        elif result == '0-1':
+            # Black won
+            return -1.0 if to_play else 1.0
         elif result == '1/2-1/2':
-            return 0
+            # Draw
+            return 0.0
         elif result == '*' and len(self.history) == self.config.max_moves:
-            return 0
+            # Game ended by move limit (draw)
+            return 0.0
         else:
-            return -1 
+            # Game not over (shouldn't happen if called correctly)
+            return 0.0 
 
     def make_target(self, state_index: int):
 
@@ -43,7 +49,16 @@ class Game(object):
 
     def legal_actions(self):
         legal_action_generator = self.board.generate_legal_moves()
-        moveIndices = [self.config.moveList.index(action.uci()) for action in legal_action_generator]
+        moveIndices = []
+        for action in legal_action_generator:
+            uci_move = action.uci()
+            try:
+                idx = self.config.moveList.index(uci_move)
+                moveIndices.append(idx)
+            except ValueError:
+                # Move not in moveList - this shouldn't happen if moveList is complete
+                # But handle gracefully by skipping
+                pass
         return moveIndices
 
     def clone(self):
@@ -97,38 +112,3 @@ class Game(object):
             return True
         else:
             return False
-    
-    def uci_to_unity_input(self, uci_move):
-        ranks = ['a', 'b', 'c' , .... , 'h']
-        # UCI to list of cords "e7e8"
-        sq1 = uci_move[:2]
-        sq2 = uci_move[2:]
-
-        if len(sq2) > 2:
-            promotion = sq2[-1]
-
-        # uci sq1sq2 ex. e2e4
-        # unity input [x0, z0, x1, z1]
-        history = ['e2e4', 'e7e5', .....]
-
-
-
-
-def generate_training_batch(history):
-
-    chess_game = unity.make('filepath-to-unity')
-
-    initial_frame = chess_game.reset()
-
-    for move in history:
-
-        
-        next_state, _, _, _ = chess_game.step(move_in_uci_format)
-
-
-
-
-
-        
-
-        

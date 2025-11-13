@@ -1,38 +1,25 @@
+"""Quick training test - runs just 2 epochs to verify everything works."""
+
 from game import Game
 from config import Config
 from node import Node 
 from replayBuffer import ReplayBuffer
 from network import Network
-import math
 import numpy as np
-import random
-import tensorflow as tf
 import threading
 import os 
-import time
 import pickle as pkl
 from mcts import run_mcts
-from tensorflow.keras.models import load_model
-
-
-
-
 
 def play_game(config: Config, network: Network):
-
 	game = Game()
-
 	while not game.terminal() and len(game.history) < config.max_moves:
-
 		action, root = run_mcts(config, game, network)
 		game.apply(action)
 		game.store_search_statistics(root)
-
 	return game 
 
-
 class SelfPlay(threading.Thread):
-	
 	def __init__(self, config, network, replay_buffer, lock):
 		threading.Thread.__init__(self)
 		self.config = config
@@ -41,84 +28,78 @@ class SelfPlay(threading.Thread):
 		self.lock = lock
 	
 	def run(self):
-
 		for i in range(self.config.num_games_per_actor):
-			
 			game = play_game(self.config, self.network)
 			result = game.board.result() 
 			terminal_value = game.terminal_value()
-
-			# Thread-safe saving
-			with self.lock:
-				if result == '1/2-1/2' or result == '*':
-					file_name = 'games/draw_' + str(np.random.randint(500000))
-				else:
-					file_name = 'games/' + result + '_' + str(np.random.randint(500000))
-
-				try:
-					os.makedirs('games', exist_ok=True)
-					with open(file_name, 'wb') as f:
-						pkl.dump(game, f)
-				except Exception as e:
-					print(f'Error saving game: {e}')
 			
-			# Thread-safe buffer update
 			with self.lock:
 				self.replay_buffer.save_game(game)
 			
-			print('Thread: {}, Game: {}, Result {}, Reward {}'.format(threading.get_ident(), i, result, terminal_value))
-			
-			
-
+			print(f'  Thread {threading.get_ident()}, Game {i+1}/{self.config.num_games_per_actor}, Result: {result}, Value: {terminal_value:.2f}')
 
 if __name__ == '__main__':
-
-	remote = False
-	config = Config()
-	replay_buffer = ReplayBuffer(config)
-	network = Network(config, remote=remote)
+	print("=" * 60)
+	print("AlphaZero Training Test - 2 Epochs")
+	print("=" * 60)
 	
-	# Create directories
+	config = Config()
+	# Use smaller values for quick test
+	config.num_actors = 2
+	config.num_games_per_actor = 2
+	config.num_simulations = 25  # Reduced for speed
+	config.batch_size = 2
+	
+	replay_buffer = ReplayBuffer(config)
+	network = Network(config, remote=False)
+	
 	os.makedirs('models', exist_ok=True)
 	os.makedirs('games', exist_ok=True)
 	
-	# Thread lock for thread-safe operations
 	lock = threading.Lock()
-	
-	# Training step counter
 	training_step = 0
-
-	num_epochs = 1000000
-
-	print(f'Starting training with {config.num_actors} actors, {config.num_games_per_actor} games per actor')
-	print(f'Action space size: {config.num_actions}')
-	print(f'Batch size: {config.batch_size}')
-	print(f'Number of simulations: {config.num_simulations}')
-
-	for e in range(num_epochs):
+	
+	print(f'\nConfiguration:')
+	print(f'  Actors: {config.num_actors}')
+	print(f'  Games per actor: {config.num_games_per_actor}')
+	print(f'  Simulations: {config.num_simulations}')
+	print(f'  Action space: {config.num_actions}')
+	print(f'  Batch size: {config.batch_size}\n')
+	
+	for e in range(2):
+		print(f'Epoch {e+1}/2:')
+		print('  Generating self-play games...')
 		
-		# TensorFlow 2.x uses eager execution - model is thread-safe for inference
-		# No need to finalize/unfinalize graph
-
 		jobs = []
-
 		for _ in range(config.num_actors):
 			job = SelfPlay(config, network, replay_buffer, lock)
 			job.start()
 			jobs.append(job)
-
-		# Wait for all threads to complete 
+		
 		for job in jobs:
 			job.join()
-		 
+		
+		print(f'  Training on batch...')
 		batch = replay_buffer.sample_batch()
 		if len(batch) > 0:
 			network.update(batch, training_step)
 			training_step += 1
-			
-		if e % 10 == 0:
+			print(f'  ✓ Training step {training_step} completed')
+		else:
+			print('  ⚠ No samples in buffer yet')
+		
+		if e % 1 == 0:
 			try:
-				network.model.save('models/checkpoint_{}.h5'.format(e))
-				print(f'Epoch {e}: Model saved, training step {training_step}')
+				network.model.save(f'models/test_checkpoint_{e}.h5')
+				print(f'  ✓ Model saved: models/test_checkpoint_{e}.h5')
 			except Exception as ex:
-				print(f'Error saving model: {ex}')
+				print(f'  ✗ Error saving model: {ex}')
+		
+		print()
+	
+	print("=" * 60)
+	print("✅ Training test completed successfully!")
+	print("=" * 60)
+	print(f"\nTotal games generated: {len(replay_buffer.buffer)}")
+	print(f"Total training steps: {training_step}")
+

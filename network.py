@@ -30,8 +30,10 @@ class Network(object):
 			self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			
 		else:
+			# Create models directory if it doesn't exist
+			os.makedirs('models', exist_ok=True)
 			
-			model_files = os.listdir('models/')
+			model_files = [f for f in os.listdir('models/') if f.endswith('.h5')]
 			model_files.sort()
 
 			if model_files:
@@ -42,10 +44,8 @@ class Network(object):
 			else:
 				self.model = self.build_model()
 
-			self.model.predict(np.random.randn(1,8,8,18))
-			self.session = K.get_session()
-			self.graph = tf.get_default_graph()
-			self.graph.finalize()
+			# Warm up the model (TF 2.x uses eager execution, no need for session/graph)
+			self.model.predict(np.random.randn(1,8,8,18), verbose=0)
 		
 			
 	def build_model(self):
@@ -83,7 +83,7 @@ class Network(object):
 		base = Flatten()(x)
 		
 		value = Dense(512)(base)
-		value = Dense(1, activation='sigmoid', name='value')(value)
+		value = Dense(1, activation='tanh', name='value')(value)  # tanh for [-1, 1] range
 
 		policy = Dense(self.num_actions, activation='softmax', name='policy')(base)
 	
@@ -120,16 +120,15 @@ class Network(object):
 		  
 
 		else:
-			with self.session.as_default():
-				with self.graph.as_default():
-					model_output = self.model.predict(np.array([image]))
+			# TensorFlow 2.x uses eager execution - no need for session/graph context
+			model_output = self.model.predict(np.array([image]), verbose=0)
 			value  = np.array(model_output[0])
 			policy = np.array(model_output[1])
 
 		return (value, policy)  # Value, Policy
 
 
-	def update(self, batch):
+	def update(self, batch, training_step=0):
 
 		if self.remote:
 
@@ -138,16 +137,33 @@ class Network(object):
 			self.s.send(data)
 
 		else:
-
-			for image, (target_value, target_policy) in batch:
-				image = np.array([image])
-				target_value = np.array([target_value])
+			# Batch training instead of single-sample training
+			if len(batch) == 0:
+				return
 				
-				self.model.fit(
-					[image],
-					{'value': target_value, 'policy':target_policy},
-					verbose=0
-				)
+			images = np.array([img for img, _ in batch])
+			target_values = np.array([val for _, (val, _) in batch])
+			target_policies = np.array([pol for _, (_, pol) in batch])
+			
+			# Update learning rate based on schedule
+			lr = self.get_learning_rate(training_step)
+			K.set_value(self.model.optimizer.learning_rate, lr)
+			
+			self.model.fit(
+				[images],
+				{'value': target_values, 'policy': target_policies},
+				verbose=0,
+				epochs=1
+			)
+	
+	def get_learning_rate(self, training_step):
+		"""Get learning rate based on schedule."""
+		schedule = self.config.learning_rate_schedule
+		# Find the highest step that's <= training_step
+		applicable_steps = [step for step in schedule.keys() if step <= training_step]
+		if applicable_steps:
+			return schedule[max(applicable_steps)]
+		return schedule[0]  # Default to first learning rate
 
 
 
