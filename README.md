@@ -69,19 +69,37 @@ The action space includes all possible chess moves in UCI format: pawn moves, pi
 
 ### Installation
 
+#### macOS Setup (Recommended)
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+#### Linux/Ubuntu
+
 ```bash
 pip install -r requirements.txt
 ```
 
 Main dependencies:
-- Python 3.7+
-- TensorFlow 2.1.0
-- python-chess 0.31.4
+- Python 3.9+ (macOS) or Python 3.7+ (Linux)
+- TensorFlow 2.20.0+ (macOS) or TensorFlow 2.1.0+ (Linux)
+- python-chess 1.999+
 - NumPy
 
 ### Running Training
 
 ```bash
+# macOS
+./venv/bin/python __main__.py
+
+# Or activate venv first
+source venv/bin/activate
 python __main__.py
 ```
 
@@ -90,6 +108,76 @@ This starts the training loop. The system will:
 - Generate games and save them to the `games/` directory
 - Train the network on batches sampled from the replay buffer
 - Save model checkpoints to `models/` every 10 epochs
+
+### Sample Training Output
+
+Here's what a training session looks like:
+
+```
+======================================================================
+AlphaZero Training Session - Sample Run
+======================================================================
+
+Configuration:
+  Actors (parallel threads): 2
+  Games per actor: 3
+  MCTS simulations per move: 30
+  Action space size: 1968
+  Training batch size: 4
+
+======================================================================
+Epoch 1/3
+======================================================================
+
+[Self-Play Phase] Generating games...
+
+  Actor 0, Game 1/3: Result=*, Moves=150, Value=0.00, Time=223.1s
+  Actor 1, Game 1/3: Result=*, Moves=150, Value=0.00, Time=230.7s
+  Actor 0, Game 2/3: Result=1-0, Moves=87, Value=1.00, Time=125.3s
+  Actor 1, Game 2/3: Result=0-1, Moves=92, Value=-1.00, Time=131.2s
+
+  Generated 6 games in 644.3s
+  Total games in buffer: 6
+
+[Training Phase] Updating network...
+
+  ✓ Training step 1 completed in 2.34s
+  Learning rate: 0.200000
+  ✓ Checkpoint saved: models/checkpoint_0.h5 (25.1 MB)
+
+  Epoch 1 completed in 646.6s
+
+======================================================================
+Training Session Complete!
+======================================================================
+
+Summary:
+  Total epochs: 3
+  Total games generated: 18
+  Total training steps: 3
+  Checkpoints saved: 3
+```
+
+**Key Metrics:**
+- **Result**: Game outcome (`1-0` = white wins, `0-1` = black wins, `1/2-1/2` = draw, `*` = ongoing/max moves)
+- **Moves**: Number of moves in the game
+- **Value**: Terminal value from perspective of player to move (-1 = loss, 0 = draw, 1 = win)
+- **Time**: Time taken to generate the game
+- **Checkpoints**: Model weights saved periodically for resuming training
+
+### Verifying Checkpoints
+
+You can verify that checkpoints work correctly:
+
+```bash
+./venv/bin/python verify_checkpoints.py
+```
+
+This will:
+- Load existing checkpoints or create a test one
+- Verify inference works
+- Test MCTS with loaded model
+- Confirm training can continue from checkpoint
 
 ### Configuration
 
@@ -159,8 +247,28 @@ The client-server communication uses sockets with pickle for serialization.
 - [AlphaZero Paper](https://arxiv.org/abs/1712.01815) - "Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm"
 - [python-chess](https://python-chess.readthedocs.io/) - Chess library used for game logic
 
+## Recent Updates (macOS Build)
+
+This project has been updated and fixed for macOS compatibility:
+
+- ✅ **TensorFlow 2.x compatibility**: Updated from TF 1.x to TF 2.20 with eager execution
+- ✅ **Critical bug fixes**: Policy normalization, value backpropagation, batch training
+- ✅ **Complete move generation**: All chess pieces and move types supported
+- ✅ **Checkpoint verification**: Models can be saved, loaded, and training resumed
+- ✅ **Thread safety**: Proper locking for multi-threaded self-play
+
+See `FIXES_APPLIED.md` for complete list of fixes and `MACOS_SETUP.md` for macOS-specific setup.
+
 ## Notes
 
 This is a complete implementation of the AlphaZero algorithm. Training a strong chess engine requires significant computational resources and time. The original AlphaZero used thousands of TPUs and trained for days. This implementation can run on a single machine but will take much longer to reach competitive strength.
 
 For production use, consider GPU acceleration, more parallel actors, and extended training periods. The architecture is designed to be game-agnostic and could be adapted for other games by modifying the game logic and action space.
+
+## Troubleshooting
+
+**macOS SSL Warning**: The urllib3 warning about OpenSSL/LibreSSL is harmless and can be ignored.
+
+**Checkpoint Loading**: If you get errors loading checkpoints, ensure you're using the same TensorFlow version that created them.
+
+**Training Speed**: Games can take 2-4 minutes each with 30 simulations. Reduce `num_simulations` for faster training during development.

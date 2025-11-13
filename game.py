@@ -45,7 +45,7 @@ class Game(object):
     def make_target(self, state_index: int):
 
         return (np.array(self.terminal_value(state_index)),
-                np.array(self.child_visits[state_index]).reshape(1, self.num_actions))
+                np.array(self.child_visits[state_index]).reshape(self.num_actions,))
 
     def legal_actions(self):
         legal_action_generator = self.board.generate_legal_moves()

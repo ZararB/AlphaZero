@@ -146,8 +146,22 @@ class Network(object):
 			target_policies = np.array([pol for _, (_, pol) in batch])
 			
 			# Update learning rate based on schedule
-			lr = self.get_learning_rate(training_step)
-			K.set_value(self.model.optimizer.learning_rate, lr)
+			lr = float(self.get_learning_rate(training_step))
+			# For TensorFlow 2.x / Keras 3.x - set learning rate
+			try:
+				# Try direct assignment first
+				if hasattr(self.model.optimizer.learning_rate, 'assign'):
+					self.model.optimizer.learning_rate.assign(lr)
+				else:
+					# Fallback: recreate optimizer with new learning rate
+					from tensorflow.keras.optimizers import Adam
+					self.model.optimizer = Adam(learning_rate=lr)
+			except Exception as e:
+				# Final fallback
+				try:
+					K.set_value(self.model.optimizer.learning_rate, lr)
+				except:
+					pass  # Skip if can't set learning rate
 			
 			self.model.fit(
 				[images],
